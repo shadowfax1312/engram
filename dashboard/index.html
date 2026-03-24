@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engram — Brain Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+            background: #0a0a0a; color: #e0e0e0;
+            overflow: hidden; height: 100vh;
+        }
+        #graph { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+        svg { width: 100%; height: 100%; }
+        .node { cursor: pointer; }
+        .node circle { stroke-width: 1.5; transition: r 0.2s; }
+        .node.selected circle { stroke: #fff; stroke-width: 3; }
+        .node text { font-size: 9px; fill: #999; pointer-events: none; text-anchor: middle; }
+        .link { stroke-opacity: 0.3; }
+
+        /* HUD */
+        #hud {
+            position: fixed; top: 16px; left: 16px; z-index: 100;
+            background: rgba(20,20,20,0.9); border: 1px solid #333;
+            border-radius: 12px; padding: 16px; min-width: 220px;
+            backdrop-filter: blur(10px);
+        }
+        #hud h1 { font-size: 16px; color: #f5c542; margin-bottom: 4px; }
+        #hud .stats { font-size: 12px; color: #888; }
+        #hud .stat { display: inline-block; margin-right: 12px; }
+
+        /* Search */
+        #search-box {
+            position: fixed; top: 16px; right: 16px; z-index: 100;
+        }
+        #search-box input {
+            width: 260px; padding: 10px 14px; background: rgba(20,20,20,0.9);
+            border: 1px solid #333; border-radius: 10px; color: #e0e0e0;
+            font-size: 14px; outline: none;
+        }
+        #search-box input:focus { border-color: #f5c542; }
+
+        /* Detail panel */
+        #detail {
+            position: fixed; bottom: 16px; left: 16px; right: 16px;
+            max-width: 500px; z-index: 100;
+            background: rgba(20,20,20,0.95); border: 1px solid #333;
+            border-radius: 12px; padding: 16px;
+            display: none; max-height: 40vh; overflow-y: auto;
+        }
+        #detail h2 { font-size: 14px; color: #f5c542; margin-bottom: 8px; }
+        #detail .type { font-size: 11px; color: #666; text-transform: uppercase; }
+        #detail .content { font-size: 13px; color: #ccc; margin-top: 8px; line-height: 1.5; white-space: pre-wrap; }
+        #detail .meta { font-size: 11px; color: #555; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <h1>engram</h1>
+        <div class="stats">
+            <span class="stat" id="node-count">-</span>
+            <span class="stat" id="edge-count">-</span>
+        </div>
+    </div>
+    <div id="search-box">
+        <input type="text" id="search" placeholder="Search nodes..." />
+    </div>
+    <div id="graph"></div>
+    <div id="detail">
+        <div class="type" id="detail-type"></div>
+        <h2 id="detail-label"></h2>
+        <div class="content" id="detail-content"></div>
+        <div class="meta" id="detail-meta"></div>
+    </div>
+
+    <script>
+    const TYPE_COLORS = {
+        thesis: '#f5c542', concept: '#42a5f5', fact: '#66bb6a',
+        decision: '#ef5350', question: '#ab47bc', person: '#ff7043',
+        org: '#26a69a', event: '#5c6bc0', belief: '#ffa726',
+        insight_pattern: '#ce93d8', insight_evolution: '#80cbc4',
+        insight_contradiction: '#ef9a9a', hotspot: '#fff176',
+        observation: '#90a4ae', default: '#78909c'
+    };
+
+    function getColor(type) {
+        for (const [key, color] of Object.entries(TYPE_COLORS)) {
+            if (type && type.includes(key)) return color;
+        }
+        return TYPE_COLORS.default;
+    }
+
+    async function init() {
+        const resp = await fetch('data/graph.json');
+        const data = await resp.json();
+        const { nodes, edges } = data;
+
+        document.getElementById('node-count').textContent = `${nodes.length} nodes`;
+        document.getElementById('edge-count').textContent = `${edges.length} edges`;
+
+        const width = window.innerWidth, height = window.innerHeight;
+        const svg = d3.select('#graph').append('svg')
+            .attr('width', width).attr('height', height);
+
+        const g = svg.append('g');
+        svg.call(d3.zoom().scaleExtent([0.1, 8]).on('zoom', e => g.attr('transform', e.transform)));
+
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+        const validEdges = edges.filter(e => nodeMap.has(e.source) && nodeMap.has(e.target));
+
+        const sim = d3.forceSimulation(nodes)
+            .force('link', d3.forceLink(validEdges).id(d => d.id).distance(60).strength(0.3))
+            .force('charge', d3.forceManyBody().strength(-80))
+            .force('center', d3.forceCenter(width/2, height/2))
+            .force('collision', d3.forceCollide().radius(12));
+
+        const link = g.append('g').selectAll('line')
+            .data(validEdges).join('line')
+            .attr('class', 'link')
+            .attr('stroke', '#333')
+            .attr('stroke-width', d => Math.max(0.5, (d.weight || 1) * 0.5));
+
+        const node = g.append('g').selectAll('.node')
+            .data(nodes).join('g')
+            .attr('class', 'node')
+            .call(d3.drag()
+                .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+                .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+            );
+
+        node.append('circle')
+            .attr('r', d => Math.max(4, Math.min(12, 4 + (d.access_count || 0) * 0.3)))
+            .attr('fill', d => getColor(d.node_type))
+            .attr('stroke', d => d3.color(getColor(d.node_type)).darker(0.5))
+            .attr('opacity', d => Math.max(0.3, d.relevance || 0.5));
+
+        node.append('text').attr('dy', 16)
+            .text(d => {
+                const label = (d.content || '').split('\n')[0];
+                return label.length > 25 ? label.slice(0, 25) + '...' : label;
+            });
+
+        node.on('click', (e, d) => {
+            document.getElementById('detail').style.display = 'block';
+            document.getElementById('detail-type').textContent = d.node_type;
+            document.getElementById('detail-label').textContent = (d.content || '').split('\n')[0];
+            document.getElementById('detail-content').textContent = (d.content || '').split('\n').slice(1).join('\n').trim();
+            document.getElementById('detail-meta').textContent =
+                `confidence: ${(d.confidence||0).toFixed(2)} | relevance: ${(d.relevance||0).toFixed(3)} | accessed: ${d.access_count||0}x | ${d.timestamp||''}`;
+            d3.selectAll('.node').classed('selected', false);
+            d3.select(e.currentTarget).classed('selected', true);
+        });
+
+        // Search
+        document.getElementById('search').addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            node.attr('opacity', d => {
+                if (!q) return 1;
+                return (d.content || '').toLowerCase().includes(q) ? 1 : 0.1;
+            });
+        });
+
+        sim.on('tick', () => {
+            link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+            node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+    }
+
+    init();
+    </script>
+</body>
+</html>

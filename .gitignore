@@ -1,0 +1,31 @@
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# State files
+ruminate_state.json
+*_checkpoint.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.eggs/
+*.egg-info/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dashboard data (generated)
+dashboard/data/
+
+# Backups
+backups/
+
+# Logs
+*.log
