@@ -1,63 +1,45 @@
-# Engram — OpenClaw Skill Manifest
+---
+name: engram
+version: 1.0.0
+description: Persistent knowledge graph for OpenClaw agents. Extracts insights from your conversations and memory files, synthesizes patterns via rumination cycles, and makes everything semantically searchable. A second brain that remembers, synthesizes, and forgets intelligently.
+author: shadowfax1312
+homepage: https://github.com/shadowfax1312/engram
+license: MIT
+---
 
-**Name:** engram
-**Version:** 1.0.0
-**Description:** Persistent knowledge graph with extraction, rumination, and semantic search. A second brain that remembers, synthesizes, and forgets.
+# Engram
 
-## Capabilities
+A persistent knowledge graph skill for OpenClaw. Extracts insights from your conversations, daily notes, and session logs — synthesizes them into a searchable graph that grows smarter over time.
 
-- **Extract** knowledge from notes, sessions, chats, work docs, and research threads
-- **Search** semantically with O(N) cosine similarity + 2-hop graph walk
-- **Ruminate** — generative synthesis that finds patterns, contradictions, and cross-domain connections
-- **Sleep** — fitness scoring, core memory promotion, duplicate merging, and garbage collection
-- **Compact** — decay, prune orphans, merge duplicates
-- **Dashboard** — D3.js graph visualization with search
+## Architecture
 
-## Requirements
+- **Extract** — 5 extractors (memory, sessions, chats, work, topical) → nodes + edges in brain.db
+- **Ruminate** — LLM synthesis cycles that find patterns across unrelated nodes
+- **Sleep** — Fitness scoring, core memory promotion (top √N nodes), graceful decay/GC
+- **Search** — O(log N) semantic search with +0.15 boost for core memories
 
-- Python 3.10+
-- `sentence-transformers` (for local embeddings)
-- `numpy`, `scikit-learn`
-- An OpenAI-compatible LLM endpoint (default: `http://localhost:3456/v1/chat/completions`)
-
-## Quick Start
+## Install
 
 ```bash
-# Set your brain directory
-export BRAIN_DIR=~/.engram
-
-# Copy .env.example to .env and configure
-cp .env.example .env
-
-# Initialize the database
-python3 -c "from brain import init_schema; init_schema()"
-
-# Extract from your notes
-export ENGRAM_MEMORY_DIR=~/notes
-python3 -m extractors.memory
-
-# Run a think→sleep cycle
-bash scripts/run_cycles.sh 5
-
-# Search
-python3 -m brain.search "your query here"
-
-# Dashboard
-python3 -m dashboard.export --serve
+npx clawhub install engram
 ```
 
-## Environment Variables
+## Setup
 
-See `.env.example` for full list. Key variables:
+1. Copy `.env.example` to `.env` and set `OPENAI_API_KEY` and `BRAIN_DIR`
+2. Initialize the graph: `python3 brain/init.py`
+3. Run your first extraction: `python3 extractors/memory.py`
+4. Start the think+sleep cycle: `bash scripts/run_cycles.sh`
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `BRAIN_DIR` | `~/.engram` | Database and state directory |
-| `ENGRAM_LLM_ENDPOINT` | `http://localhost:3456/v1/chat/completions` | OpenAI-compatible API |
-| `ENGRAM_EXTRACT_MODEL` | `claude-haiku-4-5` | Model for extraction |
-| `ENGRAM_RUMINATE_MODEL` | `claude-sonnet-4-6` | Model for rumination |
-| `ENGRAM_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
+## Crons
 
-## Cron Setup
+See `crons.md` for copy-paste ready OpenClaw cron configs:
+- Hourly memory extraction
+- 4h session extraction
+- 2x daily ruminate + sleep
+- 6h brain.db backup
 
-See `crons.md` for copy-paste ready OpenClaw cron configurations.
+## Templates
+
+- `soul-template.md` — drop-in agent soul file with brain access instructions + safety parameters
+- `agents-template.md` — session startup sequence, memory discipline, heartbeat config
