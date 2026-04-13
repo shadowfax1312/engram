@@ -26,7 +26,7 @@ from init_graph import get_db
 # ── Constants ────────────────────────────────────────────────────
 
 SKIP_HUBS = {
-    "Ganesh", "Wife", "Shailaja", "Further Ventures",
+    "Owner",  # customize for your use case
     "McKinsey", "IIM Ahmedabad", "IIT Hyderabad",
 }
 

@@ -43,7 +43,7 @@ Extract every discrete fact, decision, belief, insight, correction, or pattern w
 Be aggressive — if it would change how an AI assistant responds in a future session, extract it.
 
 Two origin types:
-- "self" = facts about Ganesh (decisions he made, things he stated, preferences, events)
+- "self" = facts about the user (decisions they made, things they stated, preferences, events)
 - "onyx" = Onyx's own synthesis (architectures explained, patterns identified, corrections made, frameworks built)
 
 Return ONLY a valid JSON array:

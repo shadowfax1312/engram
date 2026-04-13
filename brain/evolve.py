@@ -27,8 +27,8 @@ from gateway import call_llm
 ONYX_DB = Path(__file__).parent / "onyx_brain.db"
 BRAIN_DB = Path(__file__).parent / "brain.db"
 
-TELEGRAM_TOKEN = "8286549136:AAGp6DU0_lrxUHLXi094mteH4wXP4ycW0C4"
-GANESH_CHAT_ID = "6036482548"
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+OWNER_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 CONFIDENCE_THRESHOLD = 0.82
 
@@ -273,7 +273,7 @@ def send_telegram_proposal(proposal_id, proposal):
     )
 
     data = json.dumps({
-        "chat_id": GANESH_CHAT_ID,
+        "chat_id": OWNER_CHAT_ID,
         "text": text,
     }).encode()
 

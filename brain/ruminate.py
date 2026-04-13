@@ -2,7 +2,7 @@
 """
 Ruminate cycle — Onyx's generative think cycle.
 
-Key design (from Bunny/Cashew architecture):
+Key design (from cashew architecture):
 - GENERATIVE not reactive — finds patterns in existing nodes, not just new inputs
 - Quality gate (confidence threshold) not quantity gate (new node count)
 - Sends cluster content to LLM asking for patterns, evolutions, contradictions
@@ -592,7 +592,7 @@ def insert_insights(insights, cluster_hub_id):
 
         node_id = f"insight_{ins.get('id', 'unknown')}_{datetime.now().strftime('%Y%m%d%H%M')}"
 
-        # Insert node — tagged as Onyx inference, not Ganesh's belief
+        # Insert node — tagged as system inference
         c.execute('''INSERT OR IGNORE INTO nodes (id, label, type, content, confidence, source, origin)
                      VALUES (?, ?, ?, ?, ?, ?, ?)''',
                   (node_id, label, f"insight_{ins_type}", content, conf, 'ruminate', 'onyx'))

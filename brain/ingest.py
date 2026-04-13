@@ -39,11 +39,11 @@ DB_PATH = Path(__file__).parent / "brain.db"
 STATE_DIR = Path(__file__).parent / "state"
 BACKUP_DIR = Path(__file__).parent / "backups"
 
-GPT_DIR = Path("/Users/r2d2/Downloads/second-brain/"
+GPT_DIR = Path("/path/to/second-brain/"
                "300683393621579184dc03cdf7443328896d3a4bb8727ca3b6ee583e5e006186-"
                "2026-02-23-07-03-09-e23cf9276e424e2eb82bdcffbf561fa1")
-WHATSAPP_DIR = Path("/Users/r2d2/Downloads/second-brain/Source data/Personal")
-MD_DIR = Path("/Users/r2d2/Downloads/second-brain")
+WHATSAPP_DIR = Path("/path/to/second-brain/Source data/Personal")
+MD_DIR = Path("/path/to/second-brain")
 
 
 # ── Backup ───────────────────────────────────────────────────────
@@ -283,14 +283,14 @@ Date: {date}
 Conversation:
 {messages_text}
 
-Extract 1-4 knowledge nodes about Ganesh Mahidhar (the person whose archive this is).
+Extract 1-4 knowledge nodes about the person whose archive this is.
 Focus on: his beliefs, decisions, emotional states, recurring concerns, relationships.
 
 CRITICAL ATTRIBUTION RULES:
 - Only extract facts Ganesh states about HIMSELF — his own actions, decisions, beliefs, experiences
 - Do NOT extract news/facts Ganesh is relaying about OTHER people (friends' jobs, others' deals, etc.)
-- If Ganesh says "my friend got a job at X" — that's about the friend, not Ganesh. Skip it.
-- If Ganesh says "I got a job at X" — that's about Ganesh. Extract it.
+- If the user says "my friend got a job at X" — that's about the friend, not Ganesh. Skip it.
+- If the user says "I got a job at X" — that's about the user. Extract it.
 - When in doubt, skip. Better to miss a fact than misattribute.
 
 Skip days with only logistics/small talk.
@@ -331,7 +331,7 @@ def _parse_whatsapp_file(filepath):
     return messages
 
 
-def _identify_ganesh(messages):
+def _identify_user(messages):
     """Heuristic: find Ganesh's sender name from first 50 messages."""
     exclude = {"life boss", "shailaja", "life boss❤️"}
     counts = defaultdict(int)
@@ -374,12 +374,12 @@ def ingest_whatsapp():
             print(f"  ✗ No parseable messages: {filename}")
             continue
 
-        ganesh_name = _identify_ganesh(messages)
-        if not ganesh_name:
+        user_name = _identify_user(messages)
+        if not user_name:
             print(f"  ✗ Can't identify Ganesh in: {filename}")
             continue
 
-        print(f"  • {filename} ({len(messages)} msgs, Ganesh='{ganesh_name}')")
+        print(f"  • {filename} ({len(messages)} msgs, user='{user_name}')")
 
         # Last processed date for this file
         last_date_str = processed_files.get(filename)
@@ -421,7 +421,7 @@ def ingest_whatsapp():
             for day, day_msgs in batch:
                 lines = []
                 for sender, text in day_msgs:
-                    role = "Ganesh" if sender == ganesh_name else sender
+                    role = "Ganesh" if sender == user_name else sender
                     lines.append(f"{role}: {text}")
                 day_text = "\n".join(lines)[:2000]  # limit per day
                 batch_text_parts.append(f"=== {day.isoformat()} ===\n{day_text}")
@@ -433,9 +433,9 @@ def ingest_whatsapp():
 
 {batch_text}
 
-Extract 1-4 knowledge nodes about Ganesh Mahidhar (the person whose archive this is).
+Extract 1-4 knowledge nodes about the person whose archive this is.
 Focus on: his emotional state, decisions, relationships, recurring concerns.
-Only extract from Ganesh's perspective — what does this reveal about HIM.
+Only extract from the user's perspective — what does this reveal about HIM.
 Include the date in each node's content when relevant.
 
 Return JSON array:
